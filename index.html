@@ -388,6 +388,11 @@
     </div>
     <div class="card" id="historyListCard">
       <h2>历史战绩</h2>
+      <div class="row" style="margin-bottom:16px">
+        <button class="btn ghost mini" style="flex:none" onclick="exportData()">📤 导出全部数据</button>
+        <button class="btn ghost mini" style="flex:none" onclick="document.getElementById('importFile').click()">📥 导入数据</button>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+      </div>
       <div id="historyList"></div>
     </div>
   </section>
@@ -1287,8 +1292,55 @@ function flash(msg){
   clearTimeout(flashT); flashT=setTimeout(()=>el.style.opacity='0',1500);
 }
 
+/* ---------- 数据导出 / 导入 / 云端种子 ---------- */
+function exportData(){
+  const payload={app:'squad-board',version:1,exportedAt:new Date().toISOString(),roster:ROSTER,archive:ARCH,current:S};
+  const blob=new Blob([JSON.stringify(payload,null,1)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='squad-data-'+todayStr()+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  flash('已导出数据文件 📤');
+}
+function mergeData(obj){
+  let added=0;
+  (obj.roster||[]).forEach(n=>{ if(n && !ROSTER.includes(resolveRosterName(n)) && !ROSTER.includes(String(n))) ROSTER.push(String(n)); });
+  const ids=new Set(ARCH.map(r=>r.id));
+  (obj.archive||[]).forEach(r=>{ if(r && r.id && !ids.has(r.id)){ ARCH.push(r); ids.add(r.id); added++; } });
+  ARCH.sort((a,b)=> String(a.date||'').localeCompare(String(b.date||'')) || (a.savedAt||0)-(b.savedAt||0));
+  saveRoster(); saveArch();
+  return added;
+}
+
 /* ---------- 截图上传事件 ---------- */
 document.getElementById('shotFile').addEventListener('change', e=>{ if(e.target.files&&e.target.files[0]) onShotFile(e.target.files[0]); });
+document.getElementById('importFile').addEventListener('change', e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    try{
+      const obj=JSON.parse(ev.target.result);
+      const added=mergeData(obj);
+      renderRoster(); renderHistory();
+      flash(added?('导入完成,新增 '+added+' 晚 📥'):'导入完成,没有新数据');
+    }catch(err){ alert('导入失败:'+err.message); }
+  };
+  rd.readAsText(f);
+  e.target.value='';
+});
+/* 网站版启动时自动加载仓库里的 data.json(队伍共享历史);本地 file:// 打开时跳过 */
+(function loadSeed(){
+  if(!/^https?:$/.test(location.protocol)) return;
+  fetch('data.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(o=>{
+    if(!o) return;
+    const added=mergeData(o);
+    if(added>0){
+      flash('已同步 '+added+' 晚队伍历史 ☁');
+      if(!document.getElementById('view-history').classList.contains('hidden')) renderHistory();
+    }
+  }).catch(()=>{});
+})();
 document.getElementById('shotDrop').addEventListener('click', ()=>document.getElementById('shotFile').click());
 document.getElementById('settingsModal').addEventListener('click', e=>{ if(e.target.id==='settingsModal') closeSettings(); });
 window.addEventListener('paste', e=>{
