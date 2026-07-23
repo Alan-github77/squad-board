@@ -1,0 +1,1321 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>三岔猎狗队作战看板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===== PlayStation-inspired tokens ===== */
+  :root{
+    --primary:#0070d1; --primary-pressed:#0064b7; --primary-active:#004d8d; --on-primary:#ffffff;
+    --commerce:#d53b00;
+    --canvas:#000000; --elevated:#121314; --card:#181818; --charcoal:#1f2024;
+    --on-dark:#ffffff; --body:rgba(255,255,255,.7); --mute:rgba(229,229,229,.55); --on-dark-mute:#cccccc;
+    --hairline:rgba(229,229,229,.2); --hairline-soft:rgba(229,229,229,.12);
+    --warning:#c81b3a; --link:#53b1ff;
+    --gold-start:#ffce21; --gold-mid:#f5a623; --gold-end:#ee8e00;
+    --r-sm:4px; --r-md:8px; --r-lg:16px; --r-full:9999px;
+    --s-xxs:4px; --s-xs:8px; --s-sm:12px; --s-md:16px; --s-lg:24px; --s-xl:32px; --s-xxl:48px;
+    --display:'Roboto','PlayStation SST','SF Pro Display',system-ui,-apple-system,sans-serif;
+    --sans:'Inter','PlayStation SST',system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--canvas); color:var(--on-dark); font-family:var(--sans);
+    min-height:100vh; -webkit-font-smoothing:antialiased; color-scheme:dark;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 var(--s-lg) 96px}
+
+  /* ===== primary nav ===== */
+  .nav{
+    position:sticky;top:0;z-index:20;background:var(--canvas);
+    border-bottom:1px solid var(--hairline);
+    display:flex;align-items:center;gap:12px;height:56px;padding:0 var(--s-lg);
+  }
+  .nav .logo{font-family:var(--display);font-weight:300;font-size:20px;letter-spacing:.1px;display:flex;align-items:center;gap:10px}
+  .nav .logo b{font-weight:500}
+  .nav .glyph{width:26px;height:26px;border-radius:var(--r-full);background:var(--primary);display:grid;place-items:center;font-size:14px}
+  .nav .spacer{flex:1}
+  .nav .locale{font-size:12px;color:var(--mute);font-weight:500;letter-spacing:.3px}
+
+  /* ===== hero ===== */
+  .hero{padding:64px var(--s-lg) 40px;max-width:1080px;margin:0 auto}
+  .hero h1{
+    font-family:var(--display);font-weight:300;font-size:clamp(32px,6vw,54px);line-height:1.15;
+    letter-spacing:-.1px;margin:0 0 12px;
+  }
+  .hero h1 .blue{color:var(--primary)}
+  .hero p{font-size:16px;line-height:1.5;color:var(--body);margin:0;max-width:520px}
+
+  /* ===== tabs ===== */
+  .tabs{display:flex;gap:var(--s-sm);max-width:1080px;margin:0 auto;padding:0 var(--s-lg) 8px;flex-wrap:wrap}
+  .tabs button{
+    background:var(--hairline-soft);color:var(--on-dark-mute);border:none;
+    padding:9px 18px;border-radius:var(--r-full);font-family:var(--sans);
+    font-size:14px;font-weight:700;letter-spacing:.324px;cursor:pointer;transition:.15s;
+  }
+  .tabs button.on{background:var(--on-dark);color:var(--canvas)}
+
+  section{max-width:1080px;margin:0 auto}
+  .hidden{display:none}
+
+  /* ===== cards ===== */
+  .card{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r-md);padding:var(--s-lg);margin-top:var(--s-lg)}
+  .card h2{
+    font-family:var(--display);font-weight:300;font-size:22px;letter-spacing:.1px;
+    margin:0 0 var(--s-lg);display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .sub{font-size:13px;color:var(--mute);line-height:1.5;margin-top:var(--s-sm)}
+  .date-badge{font-family:var(--sans);font-size:12px;font-weight:500;color:var(--on-dark-mute);letter-spacing:.3px;background:var(--charcoal);padding:5px 12px;border-radius:var(--r-full)}
+
+  label{display:block;font-size:12px;color:var(--mute);margin:0 0 6px;font-weight:500;letter-spacing:.3px}
+  input,select{
+    width:100%;background:var(--charcoal);border:1px solid var(--hairline);border-radius:var(--r-sm);
+    color:var(--on-dark);padding:12px 16px;font-size:16px;font-family:var(--sans);outline:none;
+    height:48px;transition:border-color .12s;
+  }
+  input:focus{border:2px solid var(--primary);padding:11px 15px}
+  input[type=number]{-moz-appearance:textfield}
+  input[type=date]{color-scheme:dark}
+  input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  input::placeholder{color:var(--mute)}
+  .row{display:flex;gap:var(--s-sm);flex-wrap:wrap}
+  .row>*{flex:1;min-width:130px}
+
+  /* ===== roster / player chips ===== */
+  .chips{display:flex;flex-wrap:wrap;gap:10px}
+  .chip{display:flex;align-items:center;gap:8px;padding:8px 12px 8px 8px;border-radius:var(--r-full);
+    background:var(--charcoal);border:1px solid var(--hairline);cursor:pointer;transition:.12s;
+    font-size:14px;font-weight:600;user-select:none}
+  .chip .av{width:28px;height:28px;border-radius:50%;background:var(--elevated);display:grid;place-items:center;
+    font-size:13px;color:var(--on-dark-mute);font-family:var(--display);font-weight:500;flex:none}
+  .chip .nm{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip .rm{color:var(--mute);font-size:12px;padding:2px 4px;border-radius:50%;line-height:1}
+  .chip .rm:hover,.chip .rm:active{color:var(--warning)}
+  .chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
+  .chip.on .av{background:rgba(255,255,255,.2);color:#fff}
+  .chip.on .rm{color:rgba(255,255,255,.6)}
+
+  /* ===== textarea (import) ===== */
+  .ta{width:100%;min-height:96px;resize:vertical;background:var(--charcoal);border:1px solid var(--hairline);
+    border-radius:var(--r-sm);color:var(--on-dark);font-family:var(--sans);font-size:13px;padding:12px;line-height:1.5;
+    margin-top:12px;outline:none}
+  .ta:focus{border-color:var(--primary)}
+
+  /* ===== settings button + modal + upload ===== */
+  .iconbtn{background:transparent;border:1px solid var(--hairline);color:var(--on-dark-mute);width:36px;height:36px;
+    border-radius:50%;font-size:15px;cursor:pointer;display:grid;place-items:center;transition:.12s;margin-left:6px}
+  .iconbtn:hover{border-color:var(--on-dark-mute)}
+  .iconbtn:active{background:var(--hairline-soft)}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:60;display:none;align-items:center;justify-content:center;padding:20px}
+  .modal{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r-md);padding:var(--s-lg);max-width:440px;width:100%;max-height:90vh;overflow:auto}
+  .modal h2{font-family:var(--display);font-weight:300;font-size:22px;margin:0 0 var(--s-lg)}
+  .drop{margin-top:14px;border:1px dashed rgba(229,229,229,.28);border-radius:var(--r-md);padding:26px 16px;text-align:center;
+    color:var(--mute);font-size:14px;cursor:pointer;background:var(--charcoal);transition:.12s;line-height:1.6}
+  .drop:hover{border-color:var(--primary);color:var(--on-dark-mute)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+    border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:8px}
+  .btn:disabled{opacity:.75;cursor:default}
+  .drop.busy{opacity:.5;pointer-events:none}
+
+  /* ===== buttons ===== */
+  .btn{
+    background:var(--primary);color:var(--on-primary);border:none;border-radius:var(--r-full);
+    padding:0 28px;height:48px;font-family:var(--sans);font-size:16px;font-weight:700;letter-spacing:.45px;
+    cursor:pointer;transition:.12s;width:100%;
+  }
+  .btn:active{background:var(--primary-active)}
+  .btn.ghost{background:transparent;border:1px solid var(--hairline);color:var(--on-dark)}
+  .btn.ghost:active{background:var(--hairline-soft)}
+  .btn.danger{background:transparent;border:1px solid var(--warning);color:var(--warning)}
+  .btn.mini{height:40px;padding:0 18px;font-size:14px;letter-spacing:.324px;width:auto}
+  .stack{margin-top:var(--s-sm)}
+
+  .del{color:var(--mute);cursor:pointer;font-size:18px;padding:6px 10px;user-select:none;border-radius:var(--r-full)}
+  .del:active{color:var(--warning);background:var(--hairline-soft)}
+
+  /* ===== progress ===== */
+  .prog{margin-bottom:var(--s-md)}
+  .prog:last-child{margin-bottom:0}
+  .prog .top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:8px}
+  .prog .top .lbl{color:var(--body);font-weight:500;letter-spacing:.3px}
+  .prog .top .val{font-family:var(--display)}
+  .prog .top .val b{font-weight:400;font-size:20px;font-variant-numeric:tabular-nums;color:var(--on-dark)}
+  .prog .top .goal{color:var(--mute);font-size:14px}
+  .bar{height:8px;background:var(--charcoal);border-radius:var(--r-full);overflow:hidden}
+  .bar>i{display:block;height:100%;border-radius:var(--r-full);background:var(--primary);transition:width .4s cubic-bezier(.2,.7,.2,1)}
+  .badge-done{display:inline-block;background:var(--primary);color:var(--on-primary);font-size:11px;font-weight:700;letter-spacing:.3px;padding:3px 10px;border-radius:var(--r-full);margin-left:8px}
+
+  /* ===== match input table ===== */
+  .mtable{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .mrow{display:grid;grid-template-columns:1.1fr .7fr .9fr .7fr .7fr 1fr;gap:var(--s-xs);align-items:center;margin-bottom:var(--s-xs);min-width:460px}
+  .mrow.head{font-size:11px;color:var(--mute);margin-bottom:var(--s-sm);font-weight:500;letter-spacing:.3px}
+  .mrow input{height:44px;padding:8px;font-size:15px;text-align:center}
+  .mrow input:focus{padding:7px}
+  .mrow .name{font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chick-row{display:flex;align-items:center;gap:10px;margin:var(--s-md) 0 var(--s-lg);padding:14px 16px;background:var(--charcoal);border-radius:var(--r-md);cursor:pointer}
+  .chick-row input{width:22px;height:22px;accent-color:var(--primary);flex:none}
+  .chick-row label{margin:0;font-size:15px;color:var(--on-dark);font-weight:600;cursor:pointer;letter-spacing:.2px}
+
+  /* ===== dashboard stats ===== */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s-sm)}
+  .stat{background:var(--elevated);border:1px solid var(--hairline);border-radius:var(--r-md);padding:var(--s-lg) var(--s-sm);text-align:center}
+  .stat .n{font-family:var(--display);font-weight:300;font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+  .stat .l{font-size:11px;color:var(--mute);margin-top:8px;font-weight:500;letter-spacing:.4px}
+  .stat.ok{border-color:var(--primary)}
+  .stat.ok .n{color:var(--primary)}
+
+  .kpi-line{display:flex;align-items:center;gap:var(--s-sm);font-size:13px;margin-top:var(--s-md);color:var(--body)}
+  .kpi-line .tag{width:64px;font-weight:600;letter-spacing:.2px}
+  .kpi-line .num{width:66px;text-align:right;color:var(--mute);font-variant-numeric:tabular-nums}
+
+  /* ===== rank list ===== */
+  .rank{display:flex;align-items:center;gap:var(--s-md);padding:var(--s-md);border-radius:var(--r-md);background:var(--elevated);border:1px solid var(--hairline);margin-bottom:var(--s-sm);position:relative;overflow:hidden}
+  .rank .pos{font-family:var(--display);font-weight:300;font-size:26px;width:40px;text-align:center;flex:none;color:var(--on-dark-mute)}
+  .rank .who{flex:1;min-width:0}
+  .rank .who .nm{font-weight:600;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .rank .who .meta{font-size:11px;color:var(--mute);margin-top:5px;letter-spacing:.2px}
+  .rank .score{font-family:var(--display);font-weight:300;font-size:30px;color:var(--on-dark);font-variant-numeric:tabular-nums;flex:none;letter-spacing:-.5px}
+  .rank.mvp{border-color:transparent}
+  .rank.mvp::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--gold-start),var(--gold-mid),var(--gold-end))}
+  .rank.mvp .score{color:var(--gold-mid)}
+  .rank.last{border-color:var(--warning)}
+  .pill{font-size:10px;font-weight:700;padding:3px 10px;border-radius:var(--r-full);letter-spacing:.3px}
+  .pill.gold{background:linear-gradient(90deg,var(--gold-start),var(--gold-end));color:#3a2c00}
+  .pill.red{background:var(--warning);color:#fff}
+  .pill.blue{background:var(--primary);color:var(--on-primary)}
+
+  /* ===== history list ===== */
+  .hist{display:flex;align-items:center;gap:var(--s-md);padding:var(--s-md);border-radius:var(--r-md);background:var(--elevated);border:1px solid var(--hairline);margin-bottom:var(--s-sm)}
+  .hist-main{flex:1;min-width:0;cursor:pointer}
+  .hist-date{font-family:var(--display);font-weight:400;font-size:18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .hist-meta{font-size:12px;color:var(--mute);margin-top:5px;letter-spacing:.2px}
+  .hist-actions{display:flex;align-items:center;gap:8px;flex:none}
+  .sec-h{font-family:var(--display);font-weight:300;font-size:20px;letter-spacing:.1px;margin:28px 0 16px}
+
+  /* ===== donut charts ===== */
+  .donuts{display:flex;gap:var(--s-xl);flex-wrap:wrap;justify-content:center;padding:8px 0}
+  .donut-block{text-align:center}
+  .donut-block .t{font-size:12px;color:var(--mute);margin-top:6px;letter-spacing:.3px;font-weight:500}
+  .dlegend{margin-top:14px}
+  .dlegend .dl{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--hairline);font-size:13px;color:var(--body)}
+  .dlegend .dl:last-child{border:none}
+  .dlegend .cc{width:10px;height:10px;border-radius:3px;flex:none}
+  .dlegend .nm{font-weight:600;color:var(--on-dark);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dlegend .vals{margin-left:auto;color:var(--mute);font-variant-numeric:tabular-nums;font-size:12px;text-align:right}
+
+  /* ===== radar + metric stats ===== */
+  .radar-wrap{display:flex;justify-content:center;padding:8px 0 4px}
+  .mstat{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--hairline);font-size:13px}
+  .mstat:last-child{border:none}
+  .mstat .k{color:var(--body)}
+  .mstat .v{font-family:var(--display);color:var(--on-dark);font-variant-numeric:tabular-nums}
+
+  /* ===== log ===== */
+  .log .li{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--hairline);font-size:14px;color:var(--body)}
+  .log .li:last-child{border:none}
+  .log .li .win{color:var(--primary);font-weight:700;margin-left:6px}
+  .log .li .amt{color:var(--on-dark);font-variant-numeric:tabular-nums;font-weight:500}
+  /* expandable match items */
+  .log .mitem{border-bottom:1px solid var(--hairline)}
+  .log .mitem:last-child{border-bottom:none}
+  .log .mhead.li{border-bottom:none;cursor:pointer}
+  .log .mhead .caret{display:inline-block;color:var(--mute);transition:transform .15s;margin-left:8px}
+  .log .mitem.open .mhead .caret{transform:rotate(90deg)}
+  .mdetail{display:none;padding:2px 0 14px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .mitem.open .mdetail{display:block}
+  .mdrow{display:grid;grid-template-columns:1.1fr .7fr .9fr .7fr .7fr .9fr;gap:6px;align-items:center;padding:9px 10px;
+    background:var(--charcoal);border-radius:var(--r-sm);margin-bottom:6px;font-size:12.5px;color:var(--body);min-width:440px}
+  .mdrow:last-child{margin-bottom:0}
+  .mdrow .nm{font-weight:600;color:var(--on-dark);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mdrow span{font-variant-numeric:tabular-nums}
+  .mdrow .rk{text-align:right;color:var(--mute)}
+  .formula{font-size:12px;color:var(--mute);line-height:1.6;margin-top:var(--s-md);padding-top:var(--s-md);border-top:1px solid var(--hairline)}
+  .empty{text-align:center;color:var(--mute);font-size:14px;padding:32px 0;line-height:1.6}
+  .footer{text-align:center;font-size:11px;color:var(--mute);margin-top:var(--s-xxl);letter-spacing:.4px}
+  .center{text-align:center}
+
+  @media(max-width:560px){
+    .stat-grid{grid-template-columns:repeat(2,1fr)}
+    .wrap,.hero,.tabs,section{padding-left:var(--s-md);padding-right:var(--s-md)}
+    .hero{padding-top:40px}
+  }
+</style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="logo"><span class="glyph">🐔</span><span>三岔猎狗队 <b>作战看板</b></span></div>
+    <div class="spacer"></div>
+    <div class="locale">SQUAD · KPI</div>
+    <button class="iconbtn" onclick="openSettings()" title="设置">⚙️</button>
+  </nav>
+
+  <header class="hero">
+    <h1>开局定下军令状,<br><span class="blue">收工见真章</span>。</h1>
+    <p>不打完不准下</p>
+  </header>
+
+  <div class="tabs">
+    <button id="tab-setup" class="on" onclick="go('setup')">① 定目标</button>
+    <button id="tab-play" onclick="go('play')">② 记战绩</button>
+    <button id="tab-board" onclick="go('board')">③ 看板</button>
+    <button id="tab-history" onclick="go('history')">④ 历史</button>
+    <button id="tab-analysis" onclick="go('analysis')">⑤ 战力</button>
+  </div>
+
+  <!-- ========== SETUP ========== -->
+  <section id="view-setup">
+    <div class="card">
+      <h2>今晚谁上 <span id="rosterCount" class="date-badge"></span></h2>
+      <label>作战日期</label>
+      <input type="date" id="nightDate" onchange="S.date=this.value;save()">
+      <div style="height:18px"></div>
+      <div id="rosterChips" class="chips"></div>
+      <div class="row" style="margin-top:16px">
+        <input id="newMemberName" placeholder="添加新成员昵称" onkeydown="if(event.key==='Enter'){addRosterMember();event.preventDefault();}">
+        <button class="btn ghost mini" style="width:auto;flex:none" onclick="addRosterMember()">+ 添加</button>
+      </div>
+      <div class="sub">点名字选今晚参战的人(至少 2 人)。名字上的 ✕ 可从名单移除,不影响历史数据。</div>
+    </div>
+
+    <div class="card">
+      <h2>小队军令状</h2>
+      <label>目标「头」数</label>
+      <input id="goalHeads" type="number" inputmode="numeric" placeholder="例如 200" min="0">
+      <div class="sub">直接写分数(头数)。<b style="color:var(--on-dark)">1 次击杀 = 1 头,吃 1 次鸡 = 20 头</b>。整晚攒的头数去对军令状,收工算达成率。</div>
+    </div>
+
+    <button class="btn stack" onclick="startNight()">开整 · 进入记战绩</button>
+    <button class="btn ghost mini stack center" style="width:100%" onclick="resetAll()">清空重来</button>
+    <div class="sub center stack">数据只存在你自己的浏览器里,刷新不丢。</div>
+  </section>
+
+  <!-- ========== PLAY ========== -->
+  <section id="view-play" class="hidden">
+    <div class="card">
+      <h2>📷 截图识别 <span class="date-badge" id="aiStatus" style="display:none"></span></h2>
+      <div class="sub" style="margin-top:0">上传一张「比賽報告 / 總覽」截图,AI 识别后会先填入下方录入表格,核对订正后再保存。</div>
+      <input type="file" id="shotFile" accept="image/*" style="display:none">
+      <div id="shotDrop" class="drop">点这里选择截图<br>或直接 Ctrl+V 粘贴</div>
+      <div id="shotBox" style="display:none;position:relative;margin-top:12px">
+        <img id="shotPreview" alt="" style="display:block;max-width:100%;border-radius:8px;border:1px solid var(--hairline)">
+        <button id="shotRemove" onclick="removeShot()" title="移除截图"
+          style="position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;
+          background:rgba(0,0,0,.72);color:#fff;font-size:15px;line-height:1;display:grid;place-items:center">✕</button>
+        <button class="btn ghost mini" style="margin-top:10px" onclick="document.getElementById('shotFile').click()">🔄 换一张</button>
+      </div>
+      <button class="btn stack" id="aiBtn" onclick="runRecognize()" disabled>🤖 AI 识别 · 填入下方核对</button>
+      <div class="sub">首次使用请先点右上角 ⚙️ 填写识图模型的 API Key(默认智谱 GLM-4V-Flash,免费)。</div>
+      <details style="margin-top:14px">
+        <summary class="sub" style="cursor:pointer;user-select:none">识别不准?手动粘贴 JSON ▾</summary>
+        <textarea id="importBox" class="ta" placeholder='{"rank":6,"chicken":false,"players":{"suozibro":{"k":9,"d":866,"a":0,"rescue":0,"survival":"08:51"}}}'></textarea>
+        <button class="btn ghost stack" onclick="importMatch()">解析并添加本局</button>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>实时进度</h2>
+      <div id="liveProgress"></div>
+    </div>
+
+    <div class="card">
+      <h2>录入第 <span id="nextMatchNo">1</span> 局</h2>
+      <div class="mtable">
+        <div class="mrow head">
+          <div>队员</div><div>击杀</div><div>伤害</div><div>助攻</div><div>救援</div><div>存活</div>
+        </div>
+        <div id="matchInputRows"></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <div style="flex:0 0 160px">
+          <label>本局名次(排名)</label>
+          <input id="matchRank" type="number" inputmode="numeric" placeholder="如 6" min="0">
+        </div>
+      </div>
+      <div class="chick-row" onclick="document.getElementById('isChicken').click()">
+        <input type="checkbox" id="isChicken" onclick="event.stopPropagation()">
+        <label for="isChicken">🍗 这局吃鸡了!(名次填 1 也算)</label>
+      </div>
+      <button class="btn" onclick="saveMatch()">保存这局</button>
+      <div class="sub">名次填小队最终排名(全队一样)。存活时间填 MM:SS,如 08:51。没记的留空。</div>
+    </div>
+
+    <div class="card">
+      <h2>已打记录</h2>
+      <div id="matchLog" class="log"></div>
+    </div>
+  </section>
+
+  <!-- ========== BOARD ========== -->
+  <section id="view-board" class="hidden">
+    <div class="card">
+      <h2>今晚小队看板 <span id="boardDateBadge" class="date-badge"></span></h2>
+      <div class="stat-grid" id="boardStats"></div>
+      <div id="kpiLines"></div>
+    </div>
+
+    <div class="card">
+      <h2>火力占比</h2>
+      <div id="pieCharts"></div>
+    </div>
+
+    <div class="card">
+      <h2>夯拉评分榜</h2>
+      <div id="hanlaBoard"></div>
+      <div class="formula" id="formulaHint"></div>
+    </div>
+
+    <div class="card">
+      <h2>逐局回顾</h2>
+      <div id="boardLog" class="log"></div>
+    </div>
+
+    <button class="btn stack" onclick="archiveNight()">📥 收工 · 存入历史</button>
+    <button class="btn ghost stack" onclick="go('play')">← 回去继续打</button>
+  </section>
+
+  <!-- ========== HISTORY ========== -->
+  <section id="view-history" class="hidden">
+    <div class="card" id="archiveDetailCard" style="display:none">
+      <button class="btn ghost mini" onclick="closeArchiveDetail()">← 返回列表</button>
+      <div id="archiveDetail"></div>
+    </div>
+    <div class="card" id="historyListCard">
+      <h2>历史战绩</h2>
+      <div id="historyList"></div>
+    </div>
+  </section>
+
+  <!-- ========== ANALYSIS ========== -->
+  <section id="view-analysis" class="hidden">
+    <div class="card">
+      <h2>生涯战力榜 <span class="date-badge">基于历史存档</span></h2>
+      <div id="analysisSummary"></div>
+    </div>
+    <div class="card">
+      <h2>六边形能力图</h2>
+      <div id="radarPicker" class="chips" style="margin-bottom:8px"></div>
+      <div id="radarWrap" class="radar-wrap"></div>
+      <div id="radarStats"></div>
+    </div>
+  </section>
+
+  <div class="footer">本地存储 · 无需登录 · 刷新不丢 · DeepSeek 截图识别</div>
+
+  <!-- ========== SETTINGS MODAL ========== -->
+  <div id="settingsModal" class="modal-bg">
+    <div class="modal">
+      <h2>识图模型设置</h2>
+      <label>API Key</label>
+      <input type="password" id="setKey" placeholder="填入所选服务的 API Key" autocomplete="off">
+      <label style="margin-top:16px">Base URL</label>
+      <input type="text" id="setUrl" placeholder="https://open.bigmodel.cn/api/paas/v4" autocomplete="off">
+      <label style="margin-top:16px">模型(需支持图片)</label>
+      <input list="modelList" id="setModel" placeholder="glm-4v-flash" autocomplete="off">
+      <datalist id="modelList">
+        <option value="glm-4v-flash"></option>
+        <option value="glm-4v"></option>
+        <option value="qwen-vl-max"></option>
+        <option value="Qwen/Qwen2.5-VL-72B-Instruct"></option>
+      </datalist>
+      <div class="sub">Key 只保存在你自己浏览器本地(localStorage),不会上传到别处。<br>默认用智谱 <b style="color:var(--on-dark)">GLM-4V-Flash(免费)</b>:去 bigmodel.cn 注册拿 Key 填进来即可。识别需模型支持图片输入,可换任意兼容 OpenAI 接口的多模态服务。</div>
+      <button class="btn stack" onclick="saveSettings()">保存</button>
+      <button class="btn ghost stack" onclick="closeSettings()">取消</button>
+    </div>
+  </div>
+
+<script>
+const LS='pubg_kpi_v1';
+const LS_ARCH='pubg_kpi_archive_v1';
+const LS_ROSTER='pubg_kpi_roster_v1';
+const DEFAULT_ROSTER=['suozibro','aux','4421GHOST','RUIGEGE','lsx'];
+const FORMULA='夯拉分 = 击杀×4 + 助攻×1 + 救援×1 + 伤害÷200 + 吃鸡×15 + 名次奖励(第1名 +20 / 前5 +12 / 前10 +6)';
+const AX=['火力','输出','生存','吃鸡','助攻','救援'];
+
+let S = load() || defaultState();
+if(!S.date) S.date = todayStr();
+if(!S.goal) S.goal={};
+if(S.goal.heads===undefined){                 // migrate old {kills,chicken,matches} → 头数
+  const legacy=(S.goal.kills||0)+((S.goal.chicken||0)*20);
+  S.goal={heads: legacy>0?legacy:null};
+}
+let ARCH = loadArch();
+let ROSTER = loadRoster();
+let viewingArchiveId = null;
+let analysisSel = null;
+
+/* migrate: keep only valid selected names, register any unknown into roster */
+S.members = (S.members||[]).map(x=>String(x).trim()).filter(Boolean);
+S.members.forEach(n=>{ if(!ROSTER.includes(n)) ROSTER.push(n); });
+saveRoster();
+
+function defaultState(){
+  return { date: todayStr(), members:[], goal:{heads:null}, matches:[], started:false };
+}
+function load(){ try{return JSON.parse(localStorage.getItem(LS))}catch(e){return null} }
+function save(){ localStorage.setItem(LS, JSON.stringify(S)); }
+function loadArch(){ try{return JSON.parse(localStorage.getItem(LS_ARCH))||[]}catch(e){return []} }
+function saveArch(){ localStorage.setItem(LS_ARCH, JSON.stringify(ARCH)); }
+function loadRoster(){ try{const r=JSON.parse(localStorage.getItem(LS_ROSTER)); return (Array.isArray(r)&&r.length)?r:DEFAULT_ROSTER.slice();}catch(e){return DEFAULT_ROSTER.slice();} }
+function saveRoster(){ localStorage.setItem(LS_ROSTER, JSON.stringify(ROSTER)); }
+
+function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fmtDate(s){
+  if(!s) return '未记录日期';
+  const d=new Date(s+'T00:00:00');
+  if(isNaN(d)) return s;
+  const w=['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+  return s+' · '+w;
+}
+function initial(name){ const s=(name||'').trim(); return s? s.charAt(0).toUpperCase():'?'; }
+
+/* ---------- NAV ---------- */
+function go(v){
+  ['setup','play','board','history','analysis'].forEach(x=>{
+    document.getElementById('view-'+x).classList.toggle('hidden', x!==v);
+    document.getElementById('tab-'+x).classList.toggle('on', x===v);
+  });
+  if(v==='play'){ renderMatchInput(); renderLiveProgress(); renderMatchLog(); }
+  if(v==='board'){ renderBoard(); }
+  if(v==='history'){ viewingArchiveId=null; renderHistory(); }
+  if(v==='analysis'){ renderAnalysis(); }
+  window.scrollTo(0,0);
+}
+
+/* ---------- SETUP: roster ---------- */
+function renderRoster(){
+  const box=document.getElementById('rosterChips'); box.innerHTML='';
+  ROSTER.forEach(name=>{
+    const on=S.members.includes(name);
+    const c=document.createElement('div'); c.className='chip'+(on?' on':'');
+    const av=document.createElement('span'); av.className='av'; av.textContent=initial(name);
+    const nm=document.createElement('span'); nm.className='nm'; nm.textContent=name;
+    const rm=document.createElement('span'); rm.className='rm'; rm.textContent='✕'; rm.title='从名单移除';
+    c.appendChild(av); c.appendChild(nm); c.appendChild(rm);
+    c.onclick=()=>toggleMember(name);
+    rm.onclick=(e)=>removeRosterMember(name,e);
+    box.appendChild(c);
+  });
+  document.getElementById('rosterCount').textContent='已选 '+activeMembers().length+' 人';
+}
+function toggleMember(name){
+  const i=S.members.indexOf(name);
+  if(i>=0) S.members.splice(i,1); else S.members.push(name);
+  save(); renderRoster();
+}
+function addRosterMember(){
+  const el=document.getElementById('newMemberName');
+  const name=(el.value||'').trim();
+  if(!name) return;
+  const existing=resolveRosterName(name);
+  if(ROSTER.includes(existing)){
+    if(!S.members.includes(existing)){ S.members.push(existing); save(); }
+    el.value=''; renderRoster();
+    if(existing!==name) flash('已并入已有成员 '+existing);
+    return;
+  }
+  ROSTER.push(name); saveRoster();
+  if(!S.members.includes(name)){ S.members.push(name); save(); }
+  el.value='';
+  renderRoster();
+}
+function removeRosterMember(name,ev){
+  if(ev) ev.stopPropagation();
+  if(!confirm('把「'+name+'」从参战名单移除?(不影响已存档的历史数据)'))return;
+  ROSTER=ROSTER.filter(n=>n!==name);
+  S.members=S.members.filter(n=>n!==name);
+  saveRoster(); save(); renderRoster();
+}
+/* 编辑距离(用于纠正识别错一两个字母的名字,如 SUIGEGE→RUIGEGE) */
+function editDist(a,b){
+  a=String(a).toLowerCase(); b=String(b).toLowerCase();
+  const m=a.length,n=b.length;
+  if(Math.abs(m-n)>2) return 99;
+  const dp=Array.from({length:m+1},(_,i)=>{const r=new Array(n+1).fill(0); r[0]=i; return r;});
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)
+    dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return dp[m][n];
+}
+function fuzzyLimit(a,b){ return Math.min(String(a).length,String(b).length)>=7?2:1; }
+/* 把游戏ID/大小写/拼写误差归一到名单里已有的昵称;认不出的原样返回 */
+function resolveRosterName(name){
+  const n=String(name||'').trim(); if(!n) return n;
+  if(ROSTER.includes(n)) return n;
+  const low=n.toLowerCase();
+  let hit=ROSTER.find(r=>r.toLowerCase()===low);
+  if(hit) return hit;
+  hit=ROSTER.find(r=>{ const rl=r.toLowerCase(); return rl.length>=3 && (low.startsWith(rl)||rl.startsWith(low)); });
+  if(hit) return hit;
+  let best=null,bd=3;                          // 拼写近似:长名允许错1~2个字母
+  ROSTER.forEach(r=>{
+    if(r.length<4||n.length<4) return;
+    const d=editDist(n,r);
+    if(d<=fuzzyLimit(n,r)&&d<bd){ bd=d; best=r; }
+  });
+  return best||n;
+}
+function dedupArr(arr){ const seen={}, out=[]; (arr||[]).forEach(x=>{ if(x && !seen[x]){ seen[x]=1; out.push(x); } }); return out; }
+function canonMatchKeys(m){
+  ['kills','assists','damage','rescue','survival','rank'].forEach(f=>{
+    if(!m[f]) return;
+    const src=m[f], dst={};
+    Object.keys(src).forEach(rawN=>{
+      const c=resolveRosterName(rawN), v=src[rawN];
+      if(f==='survival'){ if(v && !dst[c]) dst[c]=v; else if(!(c in dst)) dst[c]=v||''; }
+      else if(f==='rank'){ if(v>0) dst[c]=v; else if(!(c in dst)) dst[c]=0; }
+      else { dst[c]=(dst[c]||0)+(v||0); }
+    });
+    m[f]=dst;
+  });
+}
+/* 一次性清理已经产生的重复成员(名单/选人/战绩/历史) */
+function dedupNames(){
+  const canon=[];
+  ROSTER.forEach(n=>{
+    const low=String(n).toLowerCase();
+    const exists=canon.find(r=>r.toLowerCase()===low)
+      || canon.find(r=>{const rl=r.toLowerCase();return rl.length>=3&&(low.startsWith(rl)||rl.startsWith(low));})
+      || canon.find(r=>r.length>=4&&n.length>=4&&editDist(n,r)<=fuzzyLimit(n,r));
+    if(exists) return;
+    const d=DEFAULT_ROSTER.find(r=>r.toLowerCase()===low) || DEFAULT_ROSTER.find(r=>{const rl=r.toLowerCase();return rl.length>=3&&(low.startsWith(rl)||rl.startsWith(low));});
+    canon.push(d||n);
+  });
+  ROSTER=canon; saveRoster();
+  S.members=dedupArr((S.members||[]).map(resolveRosterName));
+  (S.matches||[]).forEach(canonMatchKeys);
+  save();
+  (ARCH||[]).forEach(rec=>{ rec.members=dedupArr((rec.members||[]).map(resolveRosterName)); (rec.matches||[]).forEach(canonMatchKeys); });
+  saveArch();
+}
+
+function loadSetupInputs(){
+  document.getElementById('nightDate').value = S.date || todayStr();
+  document.getElementById('goalHeads').value = S.goal.heads ?? '';
+}
+document.addEventListener('input', e=>{
+  if(e.target.id==='goalHeads'){
+    const v=e.target.value.trim();
+    S.goal.heads = v===''?null:Math.max(0,parseInt(v)||0);
+    save();
+  }
+});
+
+function activeMembers(){ return nightMembers(S); }
+function nightMembers(night){ return (night.members||[]).map(m=>String(m).trim()).filter(Boolean); }
+
+function startNight(){
+  const mem=activeMembers();
+  if(mem.length<2){ alert('至少选 2 个参战队员哦'); return; }
+  if(!S.date) S.date=todayStr();
+  S.started=true; save();
+  go('play');
+}
+function resetAll(){
+  if(!confirm('确定清空当前选人、目标和战绩记录?(历史存档和名单不受影响)'))return;
+  S=defaultState(); save(); renderRoster(); loadSetupInputs(); go('setup');
+}
+
+/* ---------- PLAY: input ---------- */
+let draft={};
+function renderMatchInput(){
+  const mem=activeMembers();
+  document.getElementById('nextMatchNo').textContent = S.matches.length+1;
+  const box=document.getElementById('matchInputRows');
+  box.innerHTML='';
+  mem.forEach(name=>{
+    if(!draft[name]) draft[name]={k:'',d:'',a:'',rescue:'',survival:''};
+    const row=document.createElement('div'); row.className='mrow';
+    row.innerHTML=`
+      <div class="name" title="${esc(name)}">${esc(name)}</div>
+      <input type="number" inputmode="numeric" placeholder="0" value="${draft[name].k}" oninput="draft['${jsq(name)}'].k=this.value">
+      <input type="number" inputmode="numeric" placeholder="-" value="${draft[name].d}" oninput="draft['${jsq(name)}'].d=this.value">
+      <input type="number" inputmode="numeric" placeholder="0" value="${draft[name].a}" oninput="draft['${jsq(name)}'].a=this.value">
+      <input type="number" inputmode="numeric" placeholder="0" value="${draft[name].rescue}" oninput="draft['${jsq(name)}'].rescue=this.value">
+      <input type="text" placeholder="MM:SS" value="${draft[name].survival}" oninput="draft['${jsq(name)}'].survival=this.value">`;
+    box.appendChild(row);
+  });
+  document.getElementById('isChicken').checked=false;
+  document.getElementById('matchRank').value='';
+}
+
+function saveMatch(){
+  const mem=activeMembers();
+  const rank=num(document.getElementById('matchRank').value);
+  const chicken=document.getElementById('isChicken').checked || rank===1;
+  const m={no:S.matches.length+1, kills:{}, damage:{}, assists:{}, rescue:{}, survival:{}, rank:{}, chicken:chicken};
+  let any=false;
+  mem.forEach(name=>{
+    const d=draft[name]||{};
+    const k=num(d.k), dm=num(d.d), a=num(d.a), rc=num(d.rescue), sv=(d.survival||'').trim();
+    m.kills[name]=k; m.damage[name]=dm; m.assists[name]=a; m.rescue[name]=rc; m.survival[name]=sv; m.rank[name]=rank||0;
+    if(k||dm||a||rc||sv) any=true;
+  });
+  if(!any && !chicken && !rank){ alert('这局还没填任何数据~'); return; }
+  S.matches.push(m); save();
+  draft={};
+  renderMatchInput(); renderLiveProgress(); renderMatchLog();
+  flash('第 '+m.no+' 局已保存');
+}
+
+/* 把识别/粘贴得到的对象填进下方录入表格,由用户核对后再「保存这局」 */
+function fillMatchForm(obj){
+  const raw=obj.players||obj.p||{};
+  const players={}, unknown=[];
+  Object.keys(raw).forEach(rn=>{
+    const c=resolveRosterName(rn);                 // 名字归一(大小写/后缀/拼写误差)
+    if(ROSTER.includes(c)) players[c]=raw[rn];
+    else unknown.push(rn);                         // 名单里没有的人一律忽略,绝不新建
+  });
+  const names=Object.keys(players);
+  if(!names.length) throw new Error('识别结果里没有名单中的队员'+(unknown.length?'(忽略了:'+unknown.join('、')+')':''));
+  names.forEach(n=>{ if(!S.members.includes(n)) S.members.push(n); });
+  save();
+  draft={};
+  names.forEach(n=>{
+    const p=players[n]||{};
+    draft[n]={
+      k: String(num(p.k!=null?p.k:p.kills)),
+      d: String(num(p.d!=null?p.d:p.damage)),
+      a: String(num(p.a!=null?p.a:p.assists)),
+      rescue: String(num(p.rescue!=null?p.rescue:(p.save!=null?p.save:0))),
+      survival: (p.survival!=null?String(p.survival):(p.t!=null?String(p.t):''))
+    };
+  });
+  renderRoster(); renderMatchInput();
+  const rank=num(obj.rank);                       // renderMatchInput 会清空名次/吃鸡,渲染后再填
+  document.getElementById('matchRank').value = rank||'';
+  document.getElementById('isChicken').checked = (obj.chicken===true || rank===1);
+  const card=document.getElementById('matchInputRows').closest('.card');
+  if(card) card.scrollIntoView({behavior:'smooth',block:'start'});
+  return unknown;
+}
+/* 手动粘贴 JSON 导入(同样先填表,核对后保存) */
+function importMatch(){
+  const raw=(document.getElementById('importBox').value||'').trim();
+  if(!raw){ alert('先把战绩 JSON 粘贴进来~'); return; }
+  let obj;
+  try{ obj=JSON.parse(raw); }catch(e){ alert('解析失败,这不是有效的 JSON:\n'+e.message); return; }
+  try{
+    fillMatchForm(obj);
+    document.getElementById('importBox').value='';
+    flash('已填入下方,核对后点「保存这局」');
+  }catch(e){ alert(e.message); }
+}
+
+/* ---------- 设置 (DeepSeek) ---------- */
+const LS_SET='pubg_kpi_settings_v1';
+function getSettings(){ try{return JSON.parse(localStorage.getItem(LS_SET))||{};}catch(e){return {};} }
+const DEF_URL='https://open.bigmodel.cn/api/paas/v4';
+const DEF_MODEL='glm-4v-flash';
+function openSettings(){
+  const s=getSettings();
+  document.getElementById('setKey').value=s.apiKey||'';
+  document.getElementById('setUrl').value=s.baseUrl||DEF_URL;
+  document.getElementById('setModel').value=s.model||DEF_MODEL;
+  document.getElementById('settingsModal').style.display='flex';
+}
+function closeSettings(){ document.getElementById('settingsModal').style.display='none'; }
+function saveSettings(){
+  const o={
+    apiKey:(document.getElementById('setKey').value||'').trim(),
+    baseUrl:((document.getElementById('setUrl').value||'').trim()||DEF_URL),
+    model:((document.getElementById('setModel').value||'').trim()||DEF_MODEL)
+  };
+  localStorage.setItem(LS_SET, JSON.stringify(o));
+  closeSettings(); flash('设置已保存 ⚙️');
+}
+
+/* ---------- 截图识别 ---------- */
+let currentShot=null;
+function onShotFile(file){
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>loadShot(e.target.result);
+  reader.readAsDataURL(file);
+}
+function loadShot(dataURL){
+  const img=new Image();
+  img.onload=()=>{
+    const maxW=1600; let w=img.width, h=img.height;
+    if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+    const c=document.createElement('canvas'); c.width=w; c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    currentShot=c.toDataURL('image/jpeg',0.85);
+    document.getElementById('shotPreview').src=currentShot;
+    document.getElementById('shotBox').style.display='block';
+    document.getElementById('shotDrop').style.display='none';
+    document.getElementById('aiBtn').disabled=false;
+  };
+  img.src=dataURL;
+}
+function removeShot(){
+  currentShot=null;
+  document.getElementById('shotBox').style.display='none';
+  document.getElementById('shotPreview').src='';
+  document.getElementById('shotDrop').style.display='';
+  document.getElementById('shotFile').value='';
+  document.getElementById('aiBtn').disabled=true;
+}
+function parseModelJSON(txt){
+  if(!txt) throw new Error('模型没有返回内容');
+  let s=String(txt).trim().replace(/^```[a-zA-Z]*\s*/,'').replace(/```\s*$/,'');
+  const a=s.indexOf('{'), b=s.lastIndexOf('}');
+  if(a<0||b<0) throw new Error('模型返回里找不到 JSON:'+s.slice(0,120));
+  return JSON.parse(s.slice(a,b+1));
+}
+async function recognizeImage(dataURL){
+  const cfg=getSettings();
+  const sys=`你是 PUBG 战绩识别助手。用户会给你一张 PUBG「比賽報告/總覽」或结算截图,请识别我方小队每位队员的数据,并只输出 JSON,不要任何解释、不要 markdown 代码块。
+固定名单(队员昵称只能取这些):${ROSTER.join(', ')}
+映射规则:忽略大小写与结尾数字后,游戏ID与名单昵称匹配即对应,例如 SuoziBro→suozibro、aux8247→aux、4421ghost→4421GHOST。无法对应到名单的一律视为路人,忽略不计。players 的 key 必须原样使用名单里的昵称,绝对不要输出名单以外的名字,也不要自己造名字;看不清的名字直接跳过该行。
+输出格式:{"rank":<小队排名数字,取"排名 #N/xx"里的N>,"chicken":<排名是否为1,true/false>,"players":{"<名单昵称>":{"k":<击杀>,"d":<伤害>,"a":<助攻>,"rescue":<救援>,"survival":"<存活时间,如08:51>"}}}
+其中 k=擊殺, d=傷害, a=助攻, rescue=救援, survival=存活時間(字符串MM:SS)。数值缺失填 0,存活时间缺失填 ""。只输出 JSON 本身。`;
+  const body={
+    model: cfg.model||DEF_MODEL,
+    messages:[
+      {role:'system', content:sys},
+      {role:'user', content:[
+        {type:'text', text:'识别这张截图,按要求只输出 JSON。'},
+        {type:'image_url', image_url:{url:dataURL}}
+      ]}
+    ],
+    temperature:0, stream:false
+  };
+  const url=(cfg.baseUrl||DEF_URL).replace(/\/+$/,'')+'/chat/completions';
+  let res;
+  try{
+    res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey},body:JSON.stringify(body)});
+  }catch(e){ throw new Error('网络/CORS 请求失败:'+e.message+'(可能是浏览器跨域限制)'); }
+  if(!res.ok){ const t=await res.text().catch(()=>''); throw new Error('接口返回 '+res.status+':'+t.slice(0,240)); }
+  const data=await res.json();
+  const txt=(((data.choices||[])[0]||{}).message||{}).content||'';
+  return parseModelJSON(txt);
+}
+async function runRecognize(){
+  if(!currentShot){ alert('先选择或粘贴一张截图'); return; }
+  const cfg=getSettings();
+  if(!cfg.apiKey){ alert('请先点右上角 ⚙️ 填写识图模型的 API Key'); openSettings(); return; }
+  const btn=document.getElementById('aiBtn'), st=document.getElementById('aiStatus'), box=document.getElementById('shotBox');
+  const label=btn.innerHTML;
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>识别中…';
+  box.classList.add('busy'); box.style.pointerEvents='none'; box.style.opacity='.55';
+  st.style.display=''; st.textContent='🤖 正在识别截图…';
+  const unbusy=()=>{ box.classList.remove('busy'); box.style.pointerEvents=''; box.style.opacity=''; };
+  try{
+    const obj=await recognizeImage(currentShot);
+    const unk=fillMatchForm(obj);
+    st.textContent='已识别 ✓';
+    btn.innerHTML=label; unbusy();
+    flash(unk.length?('已填入(忽略名单外:'+unk.join('、')+')'):'已填入下方,核对无误后点「保存这局」');
+    removeShot();
+    setTimeout(()=>{ st.style.display='none'; },1600);
+  }catch(e){
+    st.style.display='none'; btn.disabled=false; btn.innerHTML=label; unbusy();
+    alert('识别失败:'+e.message+'\n\n可改用下方「手动粘贴 JSON」。');
+  }
+}
+
+/* ---------- shared compute ---------- */
+function totalsOf(night){
+  let kills=0, chicken=0;
+  (night.matches||[]).forEach(m=>{
+    chicken += m.chicken?1:0;
+    Object.values(m.kills||{}).forEach(v=>kills+=v||0);
+  });
+  return {kills, chicken, matches:(night.matches||[]).length};
+}
+function totals(){ return totalsOf(S); }
+function headsOf(night){ const t=totalsOf(night); return t.kills + t.chicken*20; }   // 1击杀=1头, 吃鸡=20头
+function rankBonus(r){
+  if(!r||r<=0) return 0;
+  if(r===1) return 20;
+  if(r<=5) return 12;
+  if(r<=10) return 6;
+  return 0;
+}
+function computeScoresOf(night){
+  const mem=nightMembers(night);
+  const agg={};
+  mem.forEach(n=>agg[n]={kills:0,assists:0,damage:0,rescue:0,chickens:0,best:99,score:0,matches:0});
+  (night.matches||[]).forEach(m=>{
+    mem.forEach(n=>{
+      const a=agg[n];
+      const k=(m.kills||{})[n]||0, as=(m.assists||{})[n]||0, d=(m.damage||{})[n]||0, rc=(m.rescue||{})[n]||0, r=(m.rank||{})[n]||0;
+      a.kills+=k; a.assists+=as; a.damage+=d; a.rescue+=rc; a.matches++;
+      if(m.chicken) a.chickens++;
+      if(r>0) a.best=Math.min(a.best,r);
+      a.score += k*4 + as*1 + rc*1 + d/200 + (m.chicken?15:0) + rankBonus(r);
+    });
+  });
+  const arr=mem.map(n=>({name:n,...agg[n],score:Math.round(agg[n].score)}));
+  arr.sort((x,y)=>y.score-x.score);
+  return arr;
+}
+function overallRate(t,g){
+  const parts=[];
+  if(g.kills) parts.push(Math.min(1,t.kills/g.kills));
+  if(g.chicken) parts.push(Math.min(1,t.chicken/g.chicken));
+  if(g.matches) parts.push(Math.min(1,t.matches/g.matches));
+  if(!parts.length) return 0;
+  return Math.round(parts.reduce((a,b)=>a+b,0)/parts.length*100);
+}
+
+/* ---------- shared HTML builders ---------- */
+function statGridHTML(night){
+  const t=totalsOf(night), g=night.goal||{};
+  const heads=t.kills+t.chicken*20;
+  const done = g.heads? (heads>=g.heads):false;
+  return `
+    <div class="stat"><div class="n">${t.matches}</div><div class="l">场次</div></div>
+    <div class="stat"><div class="n">${t.kills}</div><div class="l">总击杀</div></div>
+    <div class="stat"><div class="n">${t.chicken}</div><div class="l">吃鸡</div></div>
+    <div class="stat ${done?'ok':''}"><div class="n">${heads}</div><div class="l">头数</div></div>`;
+}
+function kpiLineHTML(label,cur,goal){
+  if(!goal) return `<div class="kpi-line"><span class="tag">${label}</span><div class="bar" style="flex:1"><i style="width:0%"></i></div><span class="num">未设</span></div>`;
+  const pct=Math.min(100,Math.round(cur/goal*100));
+  const ok=cur>=goal;
+  return `<div class="kpi-line"><span class="tag" style="color:${ok?'var(--primary)':'var(--body)'}">${ok?'✓':'○'} ${label}</span>
+    <div class="bar" style="flex:1"><i style="width:${pct}%"></i></div>
+    <span class="num">${cur}/${goal}</span></div>`;
+}
+function kpiLinesHTML(night){
+  const t=totalsOf(night), g=night.goal||{};
+  const heads=t.kills+t.chicken*20;
+  return kpiLineHTML('军令状', heads, g.heads)
+    + `<div class="sub">击杀 ${t.kills} 头 + 吃鸡 ${t.chicken}×20 = <b style="color:var(--on-dark)">${heads}</b> 头${g.heads?(' · 目标 '+g.heads+' 头'):''}</div>`;
+}
+function scoreboardHTML(night){
+  if(!(night.matches||[]).length) return '<div class="empty">打几局才有分哦</div>';
+  const arr=computeScoresOf(night);
+  return arr.map((p,i)=>{
+    const isMvp = i===0 && p.score>0;
+    const isLast = i===arr.length-1 && arr.length>1 && p.score>0;
+    const pills = (isMvp?'<span class="pill gold">MVP · 鸡王</span>':'') + (isLast?'<span class="pill red">夯拉之星</span>':'');
+    return `<div class="rank ${isMvp?'mvp':isLast?'last':''}">
+      <div class="pos">${i+1}</div>
+      <div class="who">
+        <div class="nm">${esc(p.name)} ${pills}</div>
+        <div class="meta">${p.kills} 杀 · ${p.assists} 助 · ${p.rescue} 救 · ${p.damage} 伤害 · ${p.chickens} 吃鸡 · 最佳第 ${p.best===99?'-':p.best} 名</div>
+      </div>
+      <div class="score">${p.score}</div></div>`;
+  }).join('');
+}
+function matchDetailHTML(night,m){
+  const names=Object.keys(m.kills||{});
+  const list=names.length?names:nightMembers(night);
+  if(!list.length) return '<div class="mdrow"><span class="nm">这局没有队员数据</span></div>';
+  return list.map(n=>{
+    const k=(m.kills||{})[n]||0, d=(m.damage||{})[n]||0, a=(m.assists||{})[n]||0, rc=(m.rescue||{})[n]||0, sv=(m.survival||{})[n]||'';
+    return `<div class="mdrow"><span class="nm">${esc(n)}</span><span>${k} 杀</span><span>${d} 伤害</span><span>${a} 助</span><span>${rc} 救</span><span class="rk">${sv||'-'}</span></div>`;
+  }).join('');
+}
+function matchLogInnerHTML(night, reversed, deletable){
+  const arr=(night.matches||[]).slice();
+  if(!arr.length) return '<div class="empty">暂无记录</div>';
+  const ms=reversed? arr.reverse(): arr;
+  const mem=nightMembers(night);
+  return ms.map(m=>{
+    const tk=Object.values(m.kills||{}).reduce((a,b)=>a+(b||0),0);
+    const top=mem.map(n=>({n,k:(m.kills||{})[n]||0})).sort((a,b)=>b.k-a.k)[0];
+    const delBtn=deletable?`<button class="btn danger mini" style="margin-top:8px" onclick="deleteMatch(${m.no})">🗑 删除第 ${m.no} 局</button>`:'';
+    return `<div class="mitem">
+      <div class="li mhead" onclick="toggleMatch(this)">
+        <span>第 ${m.no} 局 ${m.chicken?'<span class="win">🍗</span>':''} <span style="color:var(--mute)">本局王 ${top&&top.k?esc(top.n)+' '+top.k+'杀':'-'}</span></span>
+        <span class="amt">${tk} 击杀 <span class="caret">▸</span></span>
+      </div>
+      <div class="mdetail">${matchDetailHTML(night,m)}${delBtn}</div>
+    </div>`;
+  }).join('');
+}
+function matchLogHTML(night){ return matchLogInnerHTML(night, false); }
+
+/* ---------- 扇形图(击杀/伤害占比) ---------- */
+const PIE_COLORS=['#2f8fdc','#c9820f','#26ab84','#a86fd6','#e85575','#96962e'];  // 深色底校验通过,颜色跟人走
+function donutSVG(items,total,centerLabel){
+  const R=58, C=2*Math.PI*R, GAP=2;
+  let off=0, segs='';
+  items.forEach(it=>{
+    const frac= total>0? it.val/total:0;
+    const len=frac*C;
+    if(len>0.5){
+      const dash=Math.max(0.5,len-GAP);
+      const pct=Math.round(frac*100);
+      segs+=`<circle cx="80" cy="80" r="${R}" fill="none" stroke="${it.color}" stroke-width="26"
+        stroke-dasharray="${dash} ${(C-dash).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 80 80)">
+        <title>${esc(it.name)}:${it.val}(${pct}%)</title></circle>`;
+    }
+    off+=len;
+  });
+  const fs= String(total).length>4? 19:26;
+  return `<svg viewBox="0 0 160 160" width="150" height="150" role="img">
+    ${segs||`<circle cx="80" cy="80" r="${R}" fill="none" stroke="#1f2024" stroke-width="26"/>`}
+    <text x="80" y="78" text-anchor="middle" fill="#ffffff" font-size="${fs}" font-weight="300" font-family="Roboto,system-ui,sans-serif" font-variant-numeric="tabular-nums">${total}</text>
+    <text x="80" y="98" text-anchor="middle" fill="rgba(229,229,229,.55)" font-size="11">${centerLabel}</text>
+  </svg>`;
+}
+function pieChartsHTML(night){
+  const mem=nightMembers(night);
+  if(!mem.length || !(night.matches||[]).length) return '<div class="empty">打几局才有占比</div>';
+  const sc=computeScoresOf(night);
+  const by={}; sc.forEach(p=>by[p.name]=p);
+  const colorOf={}; mem.forEach((n,i)=>colorOf[n]=PIE_COLORS[i%PIE_COLORS.length]);   // 按选人顺序固定,不随名次变
+  const kills=mem.map(n=>({name:n,val:(by[n]||{}).kills||0,color:colorOf[n]}));
+  const dmg  =mem.map(n=>({name:n,val:(by[n]||{}).damage||0,color:colorOf[n]}));
+  const tk=kills.reduce((a,b)=>a+b.val,0), td=dmg.reduce((a,b)=>a+b.val,0);
+  if(!tk && !td) return '<div class="empty">还没有击杀和伤害数据</div>';
+  const legend=mem.map(n=>{
+    const k=(by[n]||{}).kills||0, d=(by[n]||{}).damage||0;
+    const pk=tk? Math.round(k/tk*100):0, pd=td? Math.round(d/td*100):0;
+    return `<div class="dl"><span class="cc" style="background:${colorOf[n]}"></span><span class="nm">${esc(n)}</span>
+      <span class="vals">${k} 杀 (${pk}%) · ${d} 伤害 (${pd}%)</span></div>`;
+  }).join('');
+  return `<div class="donuts">
+      <div class="donut-block">${donutSVG(kills,tk,'总击杀')}</div>
+      <div class="donut-block">${donutSVG(dmg,td,'总伤害')}</div>
+    </div>
+    <div class="dlegend">${legend}</div>`;
+}
+function toggleMatch(el){ const it=el.closest('.mitem'); if(it) it.classList.toggle('open'); }
+function deleteMatch(no){
+  const idx=S.matches.findIndex(m=>m.no===no);
+  if(idx<0) return;
+  if(!confirm('删除第 '+no+' 局记录?不可恢复。'))return;
+  S.matches.splice(idx,1);
+  S.matches.forEach((m,i)=>m.no=i+1);          // 重新编号
+  save();
+  renderMatchInput(); renderLiveProgress(); renderMatchLog();
+  if(!document.getElementById('view-board').classList.contains('hidden')) renderBoard();
+  flash('已删除,共剩 '+S.matches.length+' 局');
+}
+
+/* ---------- PLAY: progress + log ---------- */
+function renderLiveProgress(){
+  const t=totals();
+  const heads=t.kills+t.chicken*20;
+  const goal=(S.goal&&S.goal.heads)||0;
+  const box=document.getElementById('liveProgress');
+  box.innerHTML='';
+  box.appendChild(progBar('军令状(头)', heads, goal));
+  const info=document.createElement('div'); info.className='sub';
+  info.innerHTML='击杀 '+t.kills+' 头 + 吃鸡 '+t.chicken+'×20 = <b style="color:var(--on-dark)">'+heads+'</b> 头'+(goal?(' · 目标 '+goal+' 头'):' · 未设军令状');
+  box.appendChild(info);
+}
+function progBar(label, cur, goal){
+  const wrap=document.createElement('div'); wrap.className='prog';
+  const pct = goal? Math.min(100, Math.round(cur/goal*100)) : 0;
+  const done = goal && cur>=goal;
+  wrap.innerHTML=`
+    <div class="top">
+      <span class="lbl">${label}${done?'<span class="badge-done">已达成</span>':''}</span>
+      <span class="val"><b>${cur}</b> <span class="goal">${goal?'/ '+goal:'· 未设目标'}</span></span>
+    </div>
+    <div class="bar"><i style="width:${goal?pct:0}%"></i></div>`;
+  return wrap;
+}
+function renderMatchLog(){
+  const box=document.getElementById('matchLog');
+  if(!S.matches.length){ box.innerHTML='<div class="empty">还没打呢,开一局吧 🎮</div>'; return; }
+  box.innerHTML=matchLogInnerHTML(S, true, true)+'<div class="sub" style="margin-top:10px">点每一局可展开看队员明细,展开后可删除该局。</div>';
+}
+
+/* ---------- BOARD ---------- */
+function renderBoard(){
+  document.getElementById('boardDateBadge').textContent = fmtDate(S.date);
+  document.getElementById('boardStats').innerHTML = statGridHTML(S);
+  document.getElementById('kpiLines').innerHTML = kpiLinesHTML(S);
+  document.getElementById('pieCharts').innerHTML = pieChartsHTML(S);
+  document.getElementById('hanlaBoard').innerHTML = scoreboardHTML(S);
+  document.getElementById('formulaHint').innerHTML = FORMULA;
+  document.getElementById('boardLog').innerHTML = matchLogInnerHTML(S, false, true);
+}
+
+function archiveNight(){
+  if(!S.matches.length){ alert('还没有战绩,打几局再存档~'); return; }
+  const rec={
+    id:'n'+Date.now(),
+    date:S.date||todayStr(),
+    members:JSON.parse(JSON.stringify(S.members)),
+    goal:JSON.parse(JSON.stringify(S.goal)),
+    matches:JSON.parse(JSON.stringify(S.matches)),
+    savedAt:Date.now()
+  };
+  ARCH.push(rec); saveArch();
+  flash('已存入历史 📥');
+  if(confirm('已存入历史!\n开始新的一晚吗?(清空本次战绩,选人和目标保留)')){
+    S.matches=[]; S.date=todayStr(); S.started=false; save();
+    draft={};
+    loadSetupInputs();
+    go('setup');
+  }else{
+    go('history');
+  }
+}
+
+/* ---------- HISTORY ---------- */
+function renderHistory(){
+  const detailCard=document.getElementById('archiveDetailCard');
+  const listCard=document.getElementById('historyListCard');
+
+  if(viewingArchiveId){
+    const rec=ARCH.find(r=>r.id===viewingArchiveId);
+    if(rec){
+      detailCard.style.display='block'; listCard.style.display='none';
+      document.getElementById('archiveDetail').innerHTML = archiveBoardHTML(rec);
+      return;
+    }
+    viewingArchiveId=null;
+  }
+  detailCard.style.display='none'; listCard.style.display='block';
+
+  const list=document.getElementById('historyList');
+  if(!ARCH.length){
+    list.innerHTML='<div class="empty">还没有历史存档。<br>打完一晚后,到「③ 看板」点「📥 收工 · 存入历史」即可保存,以后就能在这里回溯,也会进入「⑤ 战力」分析。</div>';
+    return;
+  }
+  list.innerHTML='';
+  ARCH.slice().reverse().forEach(rec=>{
+    const t=totalsOf(rec);
+    const sc=computeScoresOf(rec);
+    const mvp=sc[0];
+    const div=document.createElement('div'); div.className='hist';
+    div.innerHTML=`
+      <div class="hist-main" onclick="viewArchive('${rec.id}')">
+        <div class="hist-date">${esc(fmtDate(rec.date))}</div>
+        <div class="hist-meta">${t.matches} 场 · ${t.kills} 击杀 · ${t.chicken} 吃鸡${mvp&&mvp.score>0?' · MVP '+esc(mvp.name):''}</div>
+      </div>
+      <div class="hist-actions">
+        <button class="btn ghost mini" onclick="viewArchive('${rec.id}')">查看</button>
+        <span class="del" title="删除" onclick="delArchive('${rec.id}')">✕</span>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+function archiveBoardHTML(rec){
+  return `
+    <h2>${esc(fmtDate(rec.date))} 战报</h2>
+    <div class="stat-grid">${statGridHTML(rec)}</div>
+    <div>${kpiLinesHTML(rec)}</div>
+    <div class="sec-h">火力占比</div>
+    ${pieChartsHTML(rec)}
+    <div class="sec-h">夯拉评分榜</div>
+    ${scoreboardHTML(rec)}
+    <div class="formula">${FORMULA}</div>
+    <div class="sec-h">逐局回顾</div>
+    <div class="log">${matchLogHTML(rec)}</div>`;
+}
+function viewArchive(id){ viewingArchiveId=id; renderHistory(); window.scrollTo(0,0); }
+function closeArchiveDetail(){ viewingArchiveId=null; renderHistory(); window.scrollTo(0,0); }
+function delArchive(id){
+  if(!confirm('删除这条历史记录?不可恢复。'))return;
+  ARCH=ARCH.filter(r=>r.id!==id); saveArch();
+  if(viewingArchiveId===id) viewingArchiveId=null;
+  renderHistory();
+}
+
+/* ---------- ANALYSIS: career + radar ---------- */
+function computeCareer(){
+  const c={};
+  function ensure(n){ if(!c[n]) c[n]={name:n,nights:0,matches:0,kills:0,assists:0,damage:0,rescue:0,chickens:0,score:0,mvp:0,best:99,rankSum:0,rankCnt:0}; return c[n]; }
+  ARCH.forEach(rec=>{
+    const mem=nightMembers(rec);
+    const sc=computeScoresOf(rec);
+    const mvpName=(sc[0]&&sc[0].score>0)? sc[0].name:null;
+    mem.forEach(n=>ensure(n).nights++);
+    if(mvpName) ensure(mvpName).mvp++;
+    (rec.matches||[]).forEach(m=>{
+      mem.forEach(n=>{
+        const a=ensure(n);
+        const k=(m.kills||{})[n]||0, as=(m.assists||{})[n]||0, d=(m.damage||{})[n]||0, rc=(m.rescue||{})[n]||0, r=(m.rank||{})[n]||0;
+        a.matches++; a.kills+=k; a.assists+=as; a.damage+=d; a.rescue+=rc;
+        if(m.chicken) a.chickens++;
+        if(r>0){ a.best=Math.min(a.best,r); a.rankSum+=r; a.rankCnt++; }
+        a.score += k*4 + as*1 + rc*1 + d/200 + (m.chicken?15:0) + rankBonus(r);
+      });
+    });
+  });
+  return c;
+}
+function metricVals(c){
+  const mt=c.matches||0;
+  return {
+    火力: mt? c.kills/mt:0,
+    输出: mt? c.damage/mt:0,
+    生存: c.rankCnt? 1/(c.rankSum/c.rankCnt):0,
+    吃鸡: mt? c.chickens/mt:0,
+    助攻: mt? c.assists/mt:0,
+    救援: mt? c.rescue/mt:0
+  };
+}
+function renderAnalysis(){
+  const career=computeCareer();
+  const names=Array.from(new Set(ROSTER.concat(Object.keys(career))));
+  const rows=names.map(n=>{
+    const base={name:n,nights:0,matches:0,kills:0,assists:0,damage:0,rescue:0,chickens:0,score:0,mvp:0,best:99,rankSum:0,rankCnt:0};
+    const c=Object.assign(base, career[n]||{});
+    c.name=n;
+    c.avg=c.matches? c.score/c.matches:0;
+    return c;
+  }).sort((a,b)=> b.avg-a.avg || b.matches-a.matches);
+
+  /* summary leaderboard */
+  document.getElementById('analysisSummary').innerHTML = rows.map((r,i)=>{
+    if(r.matches>0){
+      const avg=Math.round(r.avg);
+      const win=Math.round(r.chickens/r.matches*100);
+      return `<div class="rank ${i===0?'mvp':''}">
+        <div class="pos">${i+1}</div>
+        <div class="who"><div class="nm">${esc(r.name)}${r.mvp?` <span class="pill gold">MVP×${r.mvp}</span>`:''}</div>
+        <div class="meta">${r.nights} 晚 · ${r.matches} 场 · 场均 ${avg} 分 · ${r.kills} 杀 · 吃鸡率 ${win}% · 最佳第 ${r.best===99?'-':r.best} 名</div></div>
+        <div class="score">${avg}</div></div>`;
+    }
+    return `<div class="rank" style="opacity:.45"><div class="pos">-</div><div class="who"><div class="nm">${esc(r.name)}</div><div class="meta">暂无历史数据</div></div><div class="score">—</div></div>`;
+  }).join('');
+
+  /* radar */
+  const withData=rows.filter(r=>r.matches>0);
+  const picker=document.getElementById('radarPicker');
+  const wrap=document.getElementById('radarWrap');
+  const stats=document.getElementById('radarStats');
+  if(!withData.length){
+    picker.innerHTML='';
+    wrap.innerHTML='<div class="empty">还没有可分析的历史数据。<br>到「③ 看板」点「📥 收工 · 存入历史」存档后,这里会生成六边形能力图。</div>';
+    stats.innerHTML='';
+    return;
+  }
+  if(!analysisSel || !withData.find(r=>r.name===analysisSel)) analysisSel=withData[0].name;
+
+  /* picker chips */
+  picker.innerHTML='';
+  withData.forEach(r=>{
+    const c=document.createElement('div'); c.className='chip'+(r.name===analysisSel?' on':'');
+    const av=document.createElement('span'); av.className='av'; av.textContent=initial(r.name);
+    const nm=document.createElement('span'); nm.className='nm'; nm.textContent=r.name;
+    c.appendChild(av); c.appendChild(nm);
+    c.onclick=()=>{ analysisSel=r.name; renderAnalysis(); };
+    picker.appendChild(c);
+  });
+
+  /* normalize each axis to team max */
+  const mv=withData.map(r=>({name:r.name, m:metricVals(r)}));
+  const maxes={}; AX.forEach(k=>maxes[k]=Math.max(0.0001,...mv.map(x=>x.m[k])));
+  const sel=withData.find(r=>r.name===analysisSel);
+  const selM=metricVals(sel);
+  const selNorm=AX.map(k=>Math.round(Math.min(100, selM[k]/maxes[k]*100)));
+  const teamNorm=AX.map(k=>{
+    const arr=mv.map(x=>Math.min(100, x.m[k]/maxes[k]*100));
+    return Math.round(arr.reduce((a,b)=>a+b,0)/arr.length);
+  });
+  const mt=sel.matches;
+  const raws=[
+    (sel.kills/mt).toFixed(1),
+    Math.round(sel.damage/mt),
+    sel.rankCnt? '#'+(sel.rankSum/sel.rankCnt).toFixed(1):'—',
+    Math.round(sel.chickens/mt*100)+'%',
+    (sel.assists/mt).toFixed(1),
+    (sel.rescue/mt).toFixed(1)
+  ];
+  wrap.innerHTML=radarSVG(selNorm, teamNorm, AX, raws);
+
+  stats.innerHTML=`
+    <div class="sub center" style="margin:4px 0 14px">实线 = ${esc(sel.name)} · 虚线 = 全队平均 · 每项按全队最高为满分</div>
+    <div class="mstat"><span class="k">出场</span><span class="v">${sel.nights} 晚 / ${sel.matches} 场</span></div>
+    <div class="mstat"><span class="k">总击杀 / 场均</span><span class="v">${sel.kills} / ${(sel.kills/mt).toFixed(1)}</span></div>
+    <div class="mstat"><span class="k">总助攻 / 场均</span><span class="v">${sel.assists} / ${(sel.assists/mt).toFixed(1)}</span></div>
+    <div class="mstat"><span class="k">总救援 / 场均</span><span class="v">${sel.rescue} / ${(sel.rescue/mt).toFixed(1)}</span></div>
+    <div class="mstat"><span class="k">总伤害 / 场均</span><span class="v">${sel.damage} / ${Math.round(sel.damage/mt)}</span></div>
+    <div class="mstat"><span class="k">吃鸡 / 吃鸡率</span><span class="v">${sel.chickens} / ${Math.round(sel.chickens/mt*100)}%</span></div>
+    <div class="mstat"><span class="k">MVP 次数</span><span class="v">${sel.mvp}</span></div>
+    <div class="mstat"><span class="k">最佳 / 平均名次</span><span class="v">${sel.best===99?'-':'#'+sel.best} / ${sel.rankCnt?'#'+(sel.rankSum/sel.rankCnt).toFixed(1):'-'}</span></div>
+    <div class="mstat"><span class="k">场均夯拉分</span><span class="v">${Math.round(sel.score/mt)}</span></div>`;
+}
+function radarPoint(cx,cy,radius,valPct,i){
+  const ang=(-90 + i*60)*Math.PI/180;
+  const rr=radius*valPct/100;
+  return [cx+rr*Math.cos(ang), cy+rr*Math.sin(ang)];
+}
+function radarSVG(norm, team, labels, raws){
+  const cx=170, cy=168, R=115;
+  let grid='';
+  [25,50,75,100].forEach(p=>{
+    const pts=[];
+    for(let i=0;i<6;i++){ const q=radarPoint(cx,cy,R,p,i); pts.push(q[0].toFixed(1)+','+q[1].toFixed(1)); }
+    grid+=`<polygon points="${pts.join(' ')}" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="1"/>`;
+  });
+  let axes='', labs='';
+  for(let i=0;i<6;i++){
+    const v=radarPoint(cx,cy,R,100,i);
+    axes+=`<line x1="${cx}" y1="${cy}" x2="${v[0].toFixed(1)}" y2="${v[1].toFixed(1)}" stroke="rgba(255,255,255,.10)" stroke-width="1"/>`;
+    const l=radarPoint(cx,cy,R+22,100,i);
+    const anchor=Math.abs(l[0]-cx)<6?'middle':(l[0]>cx?'start':'end');
+    labs+=`<text x="${l[0].toFixed(1)}" y="${l[1].toFixed(1)}" fill="#cccccc" font-size="12" font-weight="600" text-anchor="${anchor}" dominant-baseline="middle">${labels[i]}</text>`;
+    labs+=`<text x="${l[0].toFixed(1)}" y="${(l[1]+14).toFixed(1)}" fill="rgba(229,229,229,.55)" font-size="10" text-anchor="${anchor}" dominant-baseline="middle">${raws[i]}</text>`;
+  }
+  const tp=[], pp=[]; let dots='';
+  for(let i=0;i<6;i++){
+    const t=radarPoint(cx,cy,R,team[i],i); tp.push(t[0].toFixed(1)+','+t[1].toFixed(1));
+    const q=radarPoint(cx,cy,R,norm[i],i); pp.push(q[0].toFixed(1)+','+q[1].toFixed(1));
+    dots+=`<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="3" fill="#0070d1"/>`;
+  }
+  return `<svg viewBox="0 0 340 340" width="100%" style="max-width:360px">
+    ${grid}${axes}
+    <polygon points="${tp.join(' ')}" fill="none" stroke="rgba(255,255,255,.38)" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <polygon points="${pp.join(' ')}" fill="rgba(0,112,209,.28)" stroke="#0070d1" stroke-width="2"/>
+    ${dots}${labs}
+  </svg>`;
+}
+
+/* ---------- utils ---------- */
+function num(v){ v=parseInt(v); return isNaN(v)?0:Math.max(0,v); }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function jsq(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+let flashT;
+function flash(msg){
+  let el=document.getElementById('flash');
+  if(!el){ el=document.createElement('div'); el.id='flash';
+    el.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--primary);color:#fff;padding:12px 24px;border-radius:9999px;font-weight:700;font-size:14px;letter-spacing:.4px;z-index:99;transition:opacity .3s';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg; el.style.opacity='1';
+  clearTimeout(flashT); flashT=setTimeout(()=>el.style.opacity='0',1500);
+}
+
+/* ---------- 截图上传事件 ---------- */
+document.getElementById('shotFile').addEventListener('change', e=>{ if(e.target.files&&e.target.files[0]) onShotFile(e.target.files[0]); });
+document.getElementById('shotDrop').addEventListener('click', ()=>document.getElementById('shotFile').click());
+document.getElementById('settingsModal').addEventListener('click', e=>{ if(e.target.id==='settingsModal') closeSettings(); });
+window.addEventListener('paste', e=>{
+  if(document.getElementById('view-play').classList.contains('hidden')) return;
+  const items=(e.clipboardData||{}).items||[];
+  for(let i=0;i<items.length;i++){
+    if(items[i].type && items[i].type.indexOf('image')===0){
+      const f=items[i].getAsFile();
+      if(f){ onShotFile(f); e.preventDefault(); break; }
+    }
+  }
+});
+
+/* 旧的 DeepSeek 配置(不支持识图)自动迁移到默认识图模型 */
+(function migrateSettings(){
+  const s=getSettings();
+  if(s && (/deepseek/i.test(s.baseUrl||'') || /deepseek/i.test(s.model||''))){
+    s.baseUrl=DEF_URL; s.model=DEF_MODEL; s.apiKey='';   // DeepSeek 的 key 不能用于新服务,清掉
+    localStorage.setItem(LS_SET, JSON.stringify(s));
+  }
+})();
+
+/* ---------- init ---------- */
+dedupNames();
+renderRoster();
+loadSetupInputs();
+if(S.started && S.matches.length){ go('play'); } else { go('setup'); }
+</script>
+</body>
+</html>
