@@ -440,7 +440,7 @@ const LS='pubg_kpi_v1';
 const LS_ARCH='pubg_kpi_archive_v1';
 const LS_ROSTER='pubg_kpi_roster_v1';
 const DEFAULT_ROSTER=['suozibro','aux','4421GHOST','RUIGEGE','lsx'];
-const FORMULA='夯拉分 = 击杀×4 + 助攻×1 + 救援×1 + 伤害÷200 + 吃鸡×15 + 名次奖励(第1名 +20 / 前5 +12 / 前10 +6)';
+const FORMULA='夯拉分 = 击杀×3 + 助攻×1 + 救援×1 + 伤害÷200 + 吃鸡×15 + 队内最后阵亡+2 + 名次奖励(第1名 +20 / 前5 +12 / 前10 +6)';
 const AX=['火力','输出','生存','吃鸡','助攻','救援'];
 
 let S = load() || defaultState();
@@ -845,18 +845,30 @@ function rankBonus(r){
   if(r<=10) return 6;
   return 0;
 }
+/* "MM:SS" 或纯秒数 → 秒;无效返回 null */
+function parseSurv(s){
+  if(s==null) return null;
+  s=String(s).trim(); if(!s) return null;
+  const m=s.match(/^(\d+):(\d{1,2})$/);
+  if(m) return parseInt(m[1])*60+parseInt(m[2]);
+  const n=parseInt(s); return isNaN(n)?null:n;
+}
 function computeScoresOf(night){
   const mem=nightMembers(night);
   const agg={};
   mem.forEach(n=>agg[n]={kills:0,assists:0,damage:0,rescue:0,chickens:0,best:99,score:0,matches:0});
   (night.matches||[]).forEach(m=>{
+    let maxSurv=0;
+    mem.forEach(n=>{ const s=parseSurv((m.survival||{})[n]); if(s&&s>maxSurv) maxSurv=s; });
     mem.forEach(n=>{
       const a=agg[n];
       const k=(m.kills||{})[n]||0, as=(m.assists||{})[n]||0, d=(m.damage||{})[n]||0, rc=(m.rescue||{})[n]||0, r=(m.rank||{})[n]||0;
       a.kills+=k; a.assists+=as; a.damage+=d; a.rescue+=rc; a.matches++;
       if(m.chicken) a.chickens++;
       if(r>0) a.best=Math.min(a.best,r);
-      a.score += k*4 + as*1 + rc*1 + d/200 + (m.chicken?15:0) + rankBonus(r);
+      const s=parseSurv((m.survival||{})[n]);
+      const lastAlive = maxSurv>0 && s===maxSurv;          // 队内最后阵亡(并列都算)
+      a.score += k*3 + as*1 + rc*1 + d/200 + (m.chicken?15:0) + rankBonus(r) + (lastAlive?2:0);
     });
   });
   const arr=mem.map(n=>({name:n,...agg[n],score:Math.round(agg[n].score)}));
@@ -1128,7 +1140,7 @@ function delArchive(id){
 /* ---------- ANALYSIS: career + radar ---------- */
 function computeCareer(){
   const c={};
-  function ensure(n){ if(!c[n]) c[n]={name:n,nights:0,matches:0,kills:0,assists:0,damage:0,rescue:0,chickens:0,score:0,mvp:0,best:99,rankSum:0,rankCnt:0}; return c[n]; }
+  function ensure(n){ if(!c[n]) c[n]={name:n,nights:0,matches:0,kills:0,assists:0,damage:0,rescue:0,chickens:0,score:0,mvp:0,best:99,rankSum:0,rankCnt:0,survRel:0,survCnt:0}; return c[n]; }
   ARCH.forEach(rec=>{
     const mem=nightMembers(rec);
     const sc=computeScoresOf(rec);
@@ -1136,13 +1148,18 @@ function computeCareer(){
     mem.forEach(n=>ensure(n).nights++);
     if(mvpName) ensure(mvpName).mvp++;
     (rec.matches||[]).forEach(m=>{
+      let maxSurv=0;
+      mem.forEach(n=>{ const s=parseSurv((m.survival||{})[n]); if(s&&s>maxSurv) maxSurv=s; });
       mem.forEach(n=>{
         const a=ensure(n);
         const k=(m.kills||{})[n]||0, as=(m.assists||{})[n]||0, d=(m.damage||{})[n]||0, rc=(m.rescue||{})[n]||0, r=(m.rank||{})[n]||0;
         a.matches++; a.kills+=k; a.assists+=as; a.damage+=d; a.rescue+=rc;
         if(m.chicken) a.chickens++;
         if(r>0){ a.best=Math.min(a.best,r); a.rankSum+=r; a.rankCnt++; }
-        a.score += k*4 + as*1 + rc*1 + d/200 + (m.chicken?15:0) + rankBonus(r);
+        const s=parseSurv((m.survival||{})[n]);
+        if(maxSurv>0 && s!=null){ a.survRel += s/maxSurv; a.survCnt++; }   // 队内相对存活比
+        const lastAlive = maxSurv>0 && s===maxSurv;
+        a.score += k*3 + as*1 + rc*1 + d/200 + (m.chicken?15:0) + rankBonus(r) + (lastAlive?2:0);
       });
     });
   });
@@ -1153,7 +1170,7 @@ function metricVals(c){
   return {
     火力: mt? c.kills/mt:0,
     输出: mt? c.damage/mt:0,
-    生存: c.rankCnt? 1/(c.rankSum/c.rankCnt):0,
+    生存: c.survCnt? c.survRel/c.survCnt:0,
     吃鸡: mt? c.chickens/mt:0,
     助攻: mt? c.assists/mt:0,
     救援: mt? c.rescue/mt:0
@@ -1163,7 +1180,7 @@ function renderAnalysis(){
   const career=computeCareer();
   const names=Array.from(new Set(ROSTER.concat(Object.keys(career))));
   const rows=names.map(n=>{
-    const base={name:n,nights:0,matches:0,kills:0,assists:0,damage:0,rescue:0,chickens:0,score:0,mvp:0,best:99,rankSum:0,rankCnt:0};
+    const base={name:n,nights:0,matches:0,kills:0,assists:0,damage:0,rescue:0,chickens:0,score:0,mvp:0,best:99,rankSum:0,rankCnt:0,survRel:0,survCnt:0};
     const c=Object.assign(base, career[n]||{});
     c.name=n;
     c.avg=c.matches? c.score/c.matches:0;
@@ -1222,7 +1239,7 @@ function renderAnalysis(){
   const raws=[
     (sel.kills/mt).toFixed(1),
     Math.round(sel.damage/mt),
-    sel.rankCnt? '#'+(sel.rankSum/sel.rankCnt).toFixed(1):'—',
+    sel.survCnt? Math.round(sel.survRel/sel.survCnt*100)+'%':'—',
     Math.round(sel.chickens/mt*100)+'%',
     (sel.assists/mt).toFixed(1),
     (sel.rescue/mt).toFixed(1)
@@ -1239,6 +1256,7 @@ function renderAnalysis(){
     <div class="mstat"><span class="k">吃鸡 / 吃鸡率</span><span class="v">${sel.chickens} / ${Math.round(sel.chickens/mt*100)}%</span></div>
     <div class="mstat"><span class="k">MVP 次数</span><span class="v">${sel.mvp}</span></div>
     <div class="mstat"><span class="k">最佳 / 平均名次</span><span class="v">${sel.best===99?'-':'#'+sel.best} / ${sel.rankCnt?'#'+(sel.rankSum/sel.rankCnt).toFixed(1):'-'}</span></div>
+    <div class="mstat"><span class="k">队内存活比(场均)</span><span class="v">${sel.survCnt?Math.round(sel.survRel/sel.survCnt*100)+'%':'-'}</span></div>
     <div class="mstat"><span class="k">场均夯拉分</span><span class="v">${Math.round(sel.score/mt)}</span></div>`;
 }
 function radarPoint(cx,cy,radius,valPct,i){
