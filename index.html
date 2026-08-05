@@ -252,6 +252,7 @@
   <nav class="nav">
     <div class="logo"><span class="glyph">🐔</span><span>三岔猎狗队 <b>作战看板</b></span></div>
     <div class="spacer"></div>
+    <div id="cloudBadge" class="locale" style="display:none"></div>
     <div class="locale">SQUAD · KPI</div>
     <button class="iconbtn" onclick="openSettings()" title="设置">⚙️</button>
   </nav>
@@ -443,6 +444,64 @@ const DEFAULT_ROSTER=['suozibro','aux','4421GHOST','RUIGEGE','lsx'];
 const FORMULA='夯拉分 = 击杀×3 + 助攻×1 + 救援×1 + 伤害÷200 + 吃鸡×15 + 队内最后阵亡+2 + 名次奖励(第1名 +20 / 前5 +12 / 前10 +6)';
 const AX=['火力','输出','生存','吃鸡','助攻','救援'];
 
+/* ---------- 云同步 (Supabase) ----------
+   填入项目 URL 和 anon key 后自动启用;留空则纯本地模式 */
+const CLOUD={ url:'', key:'' };
+let lastLocalEdit=0, cloudPushTimer=null, cloudBusy=false;
+let DELETED = (function(){ try{return JSON.parse(localStorage.getItem('pubg_kpi_deleted_v1'))||[]}catch(e){return []} })();
+function saveDel(){ localStorage.setItem('pubg_kpi_deleted_v1', JSON.stringify(DELETED)); }
+function cloudOn(){ return !!(CLOUD.url && CLOUD.key); }
+function cloudHeaders(){ return {'apikey':CLOUD.key,'Authorization':'Bearer '+CLOUD.key,'Content-Type':'application/json'}; }
+function setCloudBadge(t){ const el=document.getElementById('cloudBadge'); if(el){ el.textContent=t; el.style.display=t?'':'none'; } }
+function cloudSchedulePush(){
+  if(!cloudOn()) return;
+  clearTimeout(cloudPushTimer);
+  setCloudBadge('☁ 同步中…');
+  cloudPushTimer=setTimeout(cloudPush,1500);
+}
+async function cloudPush(){
+  if(!cloudOn()) return;
+  if(cloudBusy){ cloudSchedulePush(); return; }
+  cloudBusy=true;
+  try{
+    const r=await fetch(CLOUD.url+'/rest/v1/squad_state?id=eq.1&select=data',{headers:cloudHeaders()});
+    if(r.ok){ const rows=await r.json(); const d=(rows[0]||{}).data||{};
+      mergeData({roster:d.roster,archive:d.archive,deleted:d.deleted}); }   // 先并别人的,避免覆盖
+    const body=JSON.stringify({data:{roster:ROSTER,archive:ARCH,current:S,deleted:DELETED,editedAt:lastLocalEdit||Date.now()}});
+    const w=await fetch(CLOUD.url+'/rest/v1/squad_state?id=eq.1',
+      {method:'PATCH',headers:Object.assign(cloudHeaders(),{'Prefer':'return=minimal'}),body:body});
+    if(!w.ok) throw new Error('HTTP '+w.status);
+    setCloudBadge('☁ 已同步');
+  }catch(e){ setCloudBadge('☁ 离线'); }
+  finally{ cloudBusy=false; }
+}
+async function cloudPull(){
+  if(!cloudOn()) return;
+  try{
+    const r=await fetch(CLOUD.url+'/rest/v1/squad_state?id=eq.1&select=data',{headers:cloudHeaders()});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows=await r.json(); const d=(rows[0]||{}).data||{};
+    let changed = mergeData({roster:d.roster,archive:d.archive,deleted:d.deleted})>0;
+    const typing=/INPUT|TEXTAREA/.test(((document.activeElement||{}).tagName)||'');
+    if(d.current && (d.editedAt||0)>lastLocalEdit && !typing){
+      if(JSON.stringify(d.current)!==JSON.stringify(S)){
+        S=d.current; localStorage.setItem(LS,JSON.stringify(S)); changed=true;
+      }
+      lastLocalEdit=d.editedAt;
+    }
+    if(changed) rerenderActive();
+    setCloudBadge('☁ 已同步');
+  }catch(e){ setCloudBadge('☁ 离线'); }
+}
+function rerenderActive(){
+  renderRoster(); loadSetupInputs();
+  const vis=v=>!document.getElementById('view-'+v).classList.contains('hidden');
+  if(vis('play')){ renderMatchInput(); renderLiveProgress(); renderMatchLog(); }
+  if(vis('board')) renderBoard();
+  if(vis('history')) renderHistory();
+  if(vis('analysis')) renderAnalysis();
+}
+
 let S = load() || defaultState();
 if(!S.date) S.date = todayStr();
 if(!S.goal) S.goal={};
@@ -464,11 +523,11 @@ function defaultState(){
   return { date: todayStr(), members:[], goal:{heads:null}, matches:[], started:false };
 }
 function load(){ try{return JSON.parse(localStorage.getItem(LS))}catch(e){return null} }
-function save(){ localStorage.setItem(LS, JSON.stringify(S)); }
+function save(){ localStorage.setItem(LS, JSON.stringify(S)); lastLocalEdit=Date.now(); cloudSchedulePush(); }
 function loadArch(){ try{return JSON.parse(localStorage.getItem(LS_ARCH))||[]}catch(e){return []} }
-function saveArch(){ localStorage.setItem(LS_ARCH, JSON.stringify(ARCH)); }
+function saveArch(){ localStorage.setItem(LS_ARCH, JSON.stringify(ARCH)); cloudSchedulePush(); }
 function loadRoster(){ try{const r=JSON.parse(localStorage.getItem(LS_ROSTER)); return (Array.isArray(r)&&r.length)?r:DEFAULT_ROSTER.slice();}catch(e){return DEFAULT_ROSTER.slice();} }
-function saveRoster(){ localStorage.setItem(LS_ROSTER, JSON.stringify(ROSTER)); }
+function saveRoster(){ localStorage.setItem(LS_ROSTER, JSON.stringify(ROSTER)); cloudSchedulePush(); }
 
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmtDate(s){
@@ -1132,7 +1191,9 @@ function viewArchive(id){ viewingArchiveId=id; renderHistory(); window.scrollTo(
 function closeArchiveDetail(){ viewingArchiveId=null; renderHistory(); window.scrollTo(0,0); }
 function delArchive(id){
   if(!confirm('删除这条历史记录?不可恢复。'))return;
-  ARCH=ARCH.filter(r=>r.id!==id); saveArch();
+  ARCH=ARCH.filter(r=>r.id!==id);
+  if(DELETED.indexOf(id)<0){ DELETED.push(id); saveDel(); }   // 墓碑:防止云同步把它"复活"
+  saveArch();
   if(viewingArchiveId===id) viewingArchiveId=null;
   renderHistory();
 }
@@ -1312,7 +1373,7 @@ function flash(msg){
 
 /* ---------- 数据导出 / 导入 / 云端种子 ---------- */
 function exportData(){
-  const payload={app:'squad-board',version:1,exportedAt:new Date().toISOString(),roster:ROSTER,archive:ARCH,current:S};
+  const payload={app:'squad-board',version:1,exportedAt:new Date().toISOString(),roster:ROSTER,archive:ARCH,current:S,deleted:DELETED};
   const blob=new Blob([JSON.stringify(payload,null,1)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -1322,13 +1383,23 @@ function exportData(){
   flash('已导出数据文件 📤');
 }
 function mergeData(obj){
-  let added=0;
-  (obj.roster||[]).forEach(n=>{ if(n && !ROSTER.includes(resolveRosterName(n)) && !ROSTER.includes(String(n))) ROSTER.push(String(n)); });
+  let added=0, rosterChanged=false, delChanged=false, archChanged=false;
+  (obj.deleted||[]).forEach(id=>{ if(id && DELETED.indexOf(id)<0){ DELETED.push(id); delChanged=true; } });
+  if(delChanged){
+    const before=ARCH.length;
+    ARCH=ARCH.filter(r=>DELETED.indexOf(r.id)<0);      // 别人删过的,这边也移除
+    if(ARCH.length!==before) archChanged=true;
+    saveDel();
+  }
+  (obj.roster||[]).forEach(n=>{ if(n && !ROSTER.includes(resolveRosterName(n)) && !ROSTER.includes(String(n))){ ROSTER.push(String(n)); rosterChanged=true; } });
   const ids=new Set(ARCH.map(r=>r.id));
-  (obj.archive||[]).forEach(r=>{ if(r && r.id && !ids.has(r.id)){ ARCH.push(r); ids.add(r.id); added++; } });
-  ARCH.sort((a,b)=> String(a.date||'').localeCompare(String(b.date||'')) || (a.savedAt||0)-(b.savedAt||0));
-  saveRoster(); saveArch();
-  return added;
+  (obj.archive||[]).forEach(r=>{
+    if(r && r.id && !ids.has(r.id) && DELETED.indexOf(r.id)<0){ ARCH.push(r); ids.add(r.id); added++; }
+  });
+  if(added>0) ARCH.sort((a,b)=> String(a.date||'').localeCompare(String(b.date||'')) || (a.savedAt||0)-(b.savedAt||0));
+  if(rosterChanged) saveRoster();          // 只有真的变了才保存,避免云同步空转
+  if(added>0 || archChanged) saveArch();
+  return added + (archChanged?1:0);
 }
 
 /* ---------- 截图上传事件 ---------- */
@@ -1386,6 +1457,11 @@ dedupNames();
 renderRoster();
 loadSetupInputs();
 if(S.started && S.matches.length){ go('play'); } else { go('setup'); }
+if(cloudOn()){
+  cloudPull();
+  setInterval(cloudPull, 15000);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) cloudPull(); });
+}
 </script>
 </body>
 </html>
